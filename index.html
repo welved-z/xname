@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CAS — Sistem Kaderisasi Digital</title>
+
+  <!-- Tailwind CDN for rapid styling (used in mockup) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-surface text-base text-foreground">
+
+  <!-- LOGIN VIEW -->
+  <main id="loginView" class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-card rounded-2xl shadow-lg overflow-hidden">
+      <div class="px-8 py-8">
+        <div class="flex justify-center mb-6">
+          <img src="assets/cas-logo.png" alt="CAS" class="h-16 w-16 object-contain rounded-lg shadow-sm" />
+        </div>
+        <h1 class="text-center text-2xl font-bold">Sistem Kaderisasi Digital</h1>
+        <p class="text-center text-sm text-muted mt-2">Masuk sebagai Pengurus Angkatan 27 — Gunakan akun Google Anda</p>
+
+        <div class="mt-8">
+          <button id="googleSignInBtn" class="w-full inline-flex items-center justify-center gap-3 py-3 px-4 rounded-lg bg-accent text-white font-semibold hover:opacity-95 transition-shadow shadow">
+            <i class="ph ph-google-logo"></i>
+            Masuk dengan Google
+          </button>
+        </div>
+      </div>
+
+      <div class="px-8 py-4 bg-surface-2 text-center border-t">
+        <p class="text-xs text-muted">&copy; 2026 MPK OSIS SMAN 71 — CAS</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- APP (hidden until login) -->
+  <div id="app" class="hidden">
+
+    <!-- NAVBAR -->
+    <nav class="fixed top-0 left-0 right-0 bg-card border-b z-40">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        <div class="h-16 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img src="assets/cas-logo.png" alt="CAS" class="h-10 w-10 object-contain rounded-md" />
+            <div>
+              <div class="text-sm font-bold text-foreground">CAS</div>
+              <div class="text-[10px] text-muted">Cestadhanasthira Agrasenartha Saka</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <ul class="hidden sm:flex gap-1 items-center">
+              <li><button data-view="dashboard" class="navBtn active">Dashboard</button></li>
+              <li><button data-view="jurnal" class="navBtn">Jurnal Kegiatan</button></li>
+              <li><button data-view="absensi" class="navBtn">Rekap Absensi</button></li>
+            </ul>
+
+            <!-- avatar -->
+            <div class="relative">
+              <button id="avatarBtn" class="h-10 w-10 rounded-full overflow-hidden ring-1 ring-transparent hover:ring-2 transition">
+                <img id="avatarImg" src="assets/avatar-placeholder.png" alt="avatar" class="h-full w-full object-cover" />
+              </button>
+              <div id="avatarMenu" class="hidden absolute right-0 mt-2 w-40 bg-card border rounded-md shadow-lg py-2">
+                <button id="openProfileBtn" class="w-full text-left px-4 py-2 text-sm hover:bg-surface-2">Profile</button>
+                <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-surface-2">Logout</button>
+              </div>
+            </div>
+
+            <!-- mobile menu toggle -->
+            <button id="mobileNavBtn" class="sm:hidden p-2 rounded-md">
+              <i class="ph ph-list"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <div class="pt-20 pb-12 max-w-6xl mx-auto px-4 sm:px-6">
+
+      <!-- DASHBOARD VIEW -->
+      <section id="dashboardView" class="view">
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold">Dashboard Evaluasi</h2>
+          <p class="text-sm text-muted mt-1">Pantau perkembangan Angkatan 28 berbasis observasi lapangan.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm text-muted">Kesiapan SDM (Matang)</p>
+              <div class="flex items-end gap-3">
+                <h3 id="matangCount" class="text-4xl font-bold">—</h3>
+                <span class="text-sm text-muted">/ 20</span>
+              </div>
+              <p class="text-xs text-success mt-2">Meningkat pasca LDKS</p>
+            </div>
+            <div class="iconCircle bg-primary-50 text-primary">
+              <i class="ph ph-users-three text-2xl"></i>
+            </div>
+          </div>
+
+          <div class="card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm text-muted">Proker Berjalan / Tuntas</p>
+              <div class="flex items-end gap-3">
+                <h3 id="prokerCount" class="text-4xl font-bold">—</h3>
+                <span class="text-sm text-muted">Kegiatan</span>
+              </div>
+              <p class="text-xs text-accent-600 mt-2">3 Proker dalam persiapan</p>
+            </div>
+            <div class="iconCircle bg-accent-50 text-accent">
+              <i class="ph ph-list-checks text-2xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 card overflow-hidden">
+          <div class="px-6 py-4 flex items-center justify-between border-b">
+            <div>
+              <h4 class="text-lg font-bold">Database Penilaian Angkatan 28</h4>
+              <p class="text-xs text-muted mt-1">Data diperbarui realtime</p>
+            </div>
+            <div class="flex gap-2">
+              <button id="openNewEntry" class="btn-primary"><i class="ph ph-plus-circle"></i> Input Catatan Lapangan</button>
+            </div>
+          </div>
+
+          <!-- Table (desktop) / Cards (mobile) -->
+          <div id="listContainer" class="p-4 overflow-x-auto">
+            <!-- JS will populate -->
+            <div id="emptyState" class="text-sm text-muted">Memuat data...</div>
+          </div>
+
+          <div class="px-4 py-3 bg-surface-2 flex items-center justify-between">
+            <span class="text-xs text-muted" id="listInfo">Menampilkan 0 dari 0 kader</span>
+            <div class="flex gap-2">
+              <button class="px-3 py-1 border rounded text-xs text-muted">Prev</button>
+              <button class="px-3 py-1 border rounded text-xs text-muted">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- JURNAL VIEW -->
+      <section id="jurnalView" class="view hidden">
+        <div class="mb-4">
+          <h2 class="text-2xl font-bold">Jurnal Kegiatan</h2>
+          <p class="text-sm text-muted mt-1">Catat observasi lapangan dengan cepat (mobile friendly).</p>
+        </div>
+
+        <div class="card p-4 mb-4">
+          <form id="entryForm" class="space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select id="selectProker" class="input">
+                <option value="">Pilih Proker...</option>
+              </select>
+              <select id="selectKader" class="input">
+                <option value="">Pilih Kader...</option>
+              </select>
+            </div>
+            <textarea id="narrative" rows="4" class="input" placeholder="Tulis observasi (contoh: 'Hari ini Aditya menangani...')"></textarea>
+
+            <div>
+              <label class="text-xs text-muted">Tag / Skill (pisah dengan koma)</label>
+              <input id="tagsInput" class="input" placeholder="mis. Problem Solving, Komunikasi" />
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary">Simpan Catatan</button>
+              <button type="button" id="clearEntry" class="btn-ghost">Bersihkan</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="jurnalList" class="space-y-3">
+          <!-- realtime entries -->
+        </div>
+      </section>
+
+      <!-- ABSENSI VIEW -->
+      <section id="absensiView" class="view hidden">
+        <div class="mb-4">
+          <h2 class="text-2xl font-bold">Rekap Absensi</h2>
+          <p class="text-sm text-muted mt-1">Ringkasan kehadiran sebagai data pendukung penilaian.</p>
+        </div>
+
+        <div class="card p-4">
+          <p class="text-sm text-muted">Fitur absensi: (skeleton) Anda bisa menambahkan aksi scan QR / checkin manual di iterasi berikutnya.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div id="profileModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div class="w-full max-w-sm bg-card rounded-xl p-6">
+        <div class="flex items-center gap-4">
+          <img id="profileAvatar" src="assets/avatar-placeholder.png" alt="avatar" class="h-16 w-16 rounded-full object-cover" />
+          <div>
+            <div id="profileName" class="font-bold text-lg">Nama</div>
+            <div id="profilePosition" class="text-sm text-muted">Jabatan</div>
+            <div id="profileClass" class="text-sm text-muted">Kelas</div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <h4 class="text-sm font-semibold">Riwayat Penilaian (Anda)</h4>
+          <div id="profileEntries" class="mt-2 text-sm text-muted">Memuat...</div>
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button id="closeProfile" class="btn-ghost">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SCRIPTS -->
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
