@@ -1,14 +1,11 @@
 // firebase.js - initialize Firebase (modular) using CDN imports (ES module)
-// You provided firebaseConfig; it's already embedded here (client config).
-// If you prefer npm bundling, replace with imports from 'firebase/app' etc in your build.
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js";
 
-// ---------- CONFIG: replace if needed (you provided this) ----------
+// ---------- CONFIG: your config (kept as you provided) ----------
 const firebaseConfig = {
   apiKey: "AIzaSyAt7QIuLGjJ4AZBiS4JEZ_RAmupqRKxWrU",
   authDomain: "kaderisasi-mpkosis71.firebaseapp.com",
@@ -21,12 +18,11 @@ const firebaseConfig = {
 // -------------------------------------------------------------------
 
 const app = initializeApp(firebaseConfig);
-try { const analytics = getAnalytics(app); } catch(e){ /* ignore analytics in non-supported env */ }
+try { const analytics = getAnalytics(app); } catch(e){ /* ignore in unsupported env */ }
 
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// export firebaseConfig if needed elsewhere
 export default firebaseConfig;
