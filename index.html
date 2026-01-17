@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CAS — Sistem Kaderisasi Digital</title>
 
-  <!-- Tailwind CDN for rapid styling (used in mockup) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
   <link rel="stylesheet" href="styles.css" />
@@ -19,15 +17,16 @@
   <main id="loginView" class="min-h-screen flex items-center justify-center p-4">
     <div class="max-w-md w-full bg-card rounded-2xl shadow-lg overflow-hidden">
       <div class="px-8 py-8">
-        <div class="flex justify-center mb-6">
+        <div class="flex justify-center mb-4">
           <img src="assets/cas-logo.png" alt="CAS" class="h-16 w-16 object-contain rounded-lg shadow-sm" />
         </div>
         <h1 class="text-center text-2xl font-bold">Sistem Kaderisasi Digital</h1>
         <p class="text-center text-sm text-muted mt-2">Masuk sebagai Pengurus Angkatan 27 — Gunakan akun Google Anda</p>
 
         <div class="mt-8">
-          <button id="googleSignInBtn" class="w-full inline-flex items-center justify-center gap-3 py-3 px-4 rounded-lg bg-accent text-white font-semibold hover:opacity-95 transition-shadow shadow">
-            <i class="ph ph-google-logo"></i>
+          <!-- visible, high-contrast Google button -->
+          <button id="googleSignInBtn" class="w-full inline-flex items-center justify-center gap-3 py-3 px-4 rounded-lg bg-accent text-white font-semibold hover:opacity-95 transition-shadow shadow-lg">
+            <svg class="w-5 h-5" viewBox="0 0 533.5 544.3"><path fill="#4285f4" d="M533.5 278.4c0-17.7-1.6-35.1-4.8-51.8H272v98.2h147.2c-6.4 34.6-25.9 63.9-55.1 83.5v69.4h89.1c52.1-48 81.3-118.5 81.3-199.3z"/><path fill="#34a853" d="M272 544.3c73.6 0 135.4-24.4 180.6-66.5l-89.1-69.4c-25 16.8-57.1 26.7-91.5 26.7-70.4 0-130.1-47.6-151.5-111.6H29.7v69.8C74.9 485.7 166.7 544.3 272 544.3z"/><path fill="#fbbc04" d="M120.5 320.8c-10.9-32.8-10.9-68.2 0-101 0-0.1 0-0.1 0-0.1L29.7 149.9C10.8 187.1 0 227.9 0 271.8s10.8 84.7 29.7 121.9l90.8-73z"/><path fill="#ea4335" d="M272 107.4c39.8 0 75.6 13.7 103.8 40.5l77.8-77.8C417 25.7 343.6 0 272 0 166.7 0 74.9 58.6 29.7 149.9l90.8 69.8C141.9 154.9 201.6 107.4 272 107.4z"/></svg>
             Masuk dengan Google
           </button>
         </div>
@@ -41,7 +40,6 @@
 
   <!-- APP (hidden until login) -->
   <div id="app" class="hidden">
-
     <!-- NAVBAR -->
     <nav class="fixed top-0 left-0 right-0 bg-card border-b z-40">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
@@ -72,7 +70,6 @@
               </div>
             </div>
 
-            <!-- mobile menu toggle -->
             <button id="mobileNavBtn" class="sm:hidden p-2 rounded-md">
               <i class="ph ph-list"></i>
             </button>
@@ -81,10 +78,8 @@
       </div>
     </nav>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN CONTENT (sama seperti sebelumnya; tidak diubah di block ini untuk singkat) -->
     <div class="pt-20 pb-12 max-w-6xl mx-auto px-4 sm:px-6">
-
-      <!-- DASHBOARD VIEW -->
       <section id="dashboardView" class="view">
         <div class="mb-6">
           <h2 class="text-2xl font-bold">Dashboard Evaluasi</h2>
@@ -132,9 +127,7 @@
             </div>
           </div>
 
-          <!-- Table (desktop) / Cards (mobile) -->
           <div id="listContainer" class="p-4 overflow-x-auto">
-            <!-- JS will populate -->
             <div id="emptyState" class="text-sm text-muted">Memuat data...</div>
           </div>
 
@@ -148,7 +141,6 @@
         </div>
       </section>
 
-      <!-- JURNAL VIEW -->
       <section id="jurnalView" class="view hidden">
         <div class="mb-4">
           <h2 class="text-2xl font-bold">Jurnal Kegiatan</h2>
@@ -172,6 +164,11 @@
               <input id="tagsInput" class="input" placeholder="mis. Problem Solving, Komunikasi" />
             </div>
 
+            <div>
+              <label class="text-xs text-muted">Lampiran foto (opsional)</label>
+              <input id="attachment" type="file" accept="image/*" class="input" />
+            </div>
+
             <div class="flex items-center gap-2">
               <button type="submit" class="btn-primary">Simpan Catatan</button>
               <button type="button" id="clearEntry" class="btn-ghost">Bersihkan</button>
@@ -179,12 +176,9 @@
           </form>
         </div>
 
-        <div id="jurnalList" class="space-y-3">
-          <!-- realtime entries -->
-        </div>
+        <div id="jurnalList" class="space-y-3"></div>
       </section>
 
-      <!-- ABSENSI VIEW -->
       <section id="absensiView" class="view hidden">
         <div class="mb-4">
           <h2 class="text-2xl font-bold">Rekap Absensi</h2>
@@ -219,10 +213,8 @@
         </div>
       </div>
     </div>
-
   </div>
 
-  <!-- SCRIPTS -->
   <script type="module" src="firebase.js"></script>
   <script type="module" src="app.js"></script>
 </body>
