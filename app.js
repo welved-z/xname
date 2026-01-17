@@ -1,16 +1,15 @@
 // app.js - application logic (vanilla JS) using exported Firebase instances
-import { auth, provider, db } from './firebase.js';
-import {
-  signInWithPopup, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import { auth, provider, db, storage } from './firebase.js';
+import { signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
 import {
-  collection, doc, query, where, onSnapshot, getDocs, addDoc, orderBy, serverTimestamp
+  collection, doc, getDoc, setDoc, query, where, onSnapshot, getDocs,
+  addDoc, orderBy, serverTimestamp, updateDoc
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-/* -------------------------
-   UI references
-   ------------------------- */
+import { ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js";
+
+/* UI refs (sama seperti sebelumnya) */
 const loginView = document.getElementById('loginView');
 const appRoot = document.getElementById('app');
 
@@ -41,6 +40,7 @@ const selectProker = document.getElementById('selectProker');
 const selectKader = document.getElementById('selectKader');
 const tagsInput = document.getElementById('tagsInput');
 const jurnalList = document.getElementById('jurnalList');
+const attachmentInput = document.getElementById('attachment');
 
 const profileModal = document.getElementById('profileModal');
 const profileName = document.getElementById('profileName');
@@ -51,17 +51,12 @@ const profileEntries = document.getElementById('profileEntries');
 const closeProfile = document.getElementById('closeProfile');
 
 let currentUser = null;
-let usersCache = {}; // simple cache uid -> user data
+let usersCache = {};
 
-/* -------------------------
-   Auth
-   ------------------------- */
+/* Auth */
 googleSignInBtn.addEventListener('click', async () => {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    alert('Gagal login: ' + e.message);
-  }
+  try { await signInWithPopup(auth, provider); }
+  catch (e) { alert('Gagal login: ' + e.message); }
 });
 
 logoutBtn.addEventListener('click', async () => {
@@ -69,50 +64,28 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 /* avatar dropdown */
-avatarBtn.addEventListener('click', () => {
-  avatarMenu.classList.toggle('hidden');
-});
+avatarBtn.addEventListener('click', () => avatarMenu.classList.toggle('hidden'));
 
 /* nav switching */
 document.querySelectorAll('[data-view]').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const view = e.currentTarget.getAttribute('data-view');
-    showView(view);
-  });
-});
-
-/* also mobile nav fallback (not fully implemented) */
-document.getElementById('mobileNavBtn')?.addEventListener('click', () => {
-  // toggles (for small screens) show/hide nav buttons
-  document.querySelector('.sm\\:hidden')?.classList.toggle('hidden');
+  btn.addEventListener('click', (e) => showView(e.currentTarget.getAttribute('data-view')));
 });
 
 /* profile modal */
-openProfileBtn.addEventListener('click', async () => {
-  avatarMenu.classList.add('hidden');
-  await openProfileModal();
-});
+openProfileBtn.addEventListener('click', async () => { avatarMenu.classList.add('hidden'); await openProfileModal(); });
 closeProfile.addEventListener('click', () => profileModal.classList.add('hidden'));
 
 /* on auth change */
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    // show app, hide login
     loginView.classList.add('hidden');
     appRoot.classList.remove('hidden');
-
-    // set avatar
     avatarImg.src = user.photoURL || 'assets/avatar-placeholder.png';
     profileAvatar.src = user.photoURL || 'assets/avatar-placeholder.png';
-
-    // ensure a users doc exists (basic upsert)
-    await ensureUserDoc(user);
-
-    // start realtime listeners
+    await ensureUserDoc(user);        // now sets doc id = uid
     initRealtime();
     showView('dashboard');
-
   } else {
     currentUser = null;
     appRoot.classList.add('hidden');
@@ -120,37 +93,25 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-/* -------------------------
-   Firestore helpers & realtime
-   ------------------------- */
+/* Ensure users doc with id = uid (production-friendly) */
 async function ensureUserDoc(user) {
-  // This helper ensures a minimal users collection doc for the signed user exists.
-  // We try to read users collection for doc with id === uid, if not create a basic doc.
   try {
-    const uDocRef = doc(collection(db, 'users'), user.uid);
-    // naive: attempt getDocs on this doc
-    // To keep simple and CDN friendly we use getDocs on a query
-    const q = query(collection(db,'users'), where('__name__','==', user.uid));
-    const snap = await getDocs(q);
-    if (snap.empty) {
-      // create doc with minimal data
-      await addDoc(collection(db, 'users'), {
-        __meta_createdBy: 'auto',
+    const userRef = doc(db, 'users', user.uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
         uid: user.uid,
         name: user.displayName || '',
         username: user.email || '',
-        role: 'admin',
+        role: 'admin',               // default for first users — adjust later
         position: 'Penilai Utama',
         class: '',
         avatarUrl: user.photoURL || '',
         cohort: 27,
         createdAt: serverTimestamp()
-      });
-      // Note: Ideally doc id should be uid; but addDoc creates auto id.
-      // For production prefer setDoc(doc(db,'users',user.uid), {...})
+      }, { merge: true });
     } else {
-      // populate cache
-      snap.forEach(d => usersCache[d.data().uid || d.id] = d.data());
+      usersCache[user.uid] = snap.data();
     }
   } catch (e) {
     console.error('ensureUserDoc error', e);
@@ -163,7 +124,6 @@ let usersUnsub = null;
 let prokersUnsub = null;
 
 function initRealtime() {
-  // listen to users (small scale)
   const usersCol = collection(db, 'users');
   usersUnsub = onSnapshot(usersCol, snapshot => {
     usersCache = {};
@@ -172,14 +132,12 @@ function initRealtime() {
       const uid = data.uid || d.id;
       usersCache[uid] = data;
     });
-    renderList(); // refresh
+    renderList();
     populateKaderSelect();
   });
 
-  // listen to prokers (for form)
   const prokersCol = collection(db, 'prokers');
   prokersUnsub = onSnapshot(prokersCol, snap => {
-    // populate select
     selectProker.innerHTML = '<option value="">Pilih Proker...</option>';
     snap.forEach(d => {
       const data = d.data();
@@ -191,11 +149,9 @@ function initRealtime() {
     prokerCount.textContent = snap.size;
   });
 
-  // entries
   const entriesCol = collection(db, 'entries');
   const q = query(entriesCol, orderBy('date','desc'));
   entriesUnsub = onSnapshot(q, snap => {
-    // render latest entries in jurnal section
     jurnalList.innerHTML = '';
     if (snap.empty) {
       jurnalList.innerHTML = '<div class="text-sm text-muted">Belum ada catatan.</div>';
@@ -206,45 +162,35 @@ function initRealtime() {
         wrapper.className = 'card p-3';
         const authorName = usersCache[ed.authorId]?.name || 'Pengurus';
         const kaderName = usersCache[ed.userId]?.name || 'Kader';
+        const attHtml = (ed.attachments && ed.attachments.length) ? `<div class="mt-2"><img src="${ed.attachments[0]}" alt="lampiran" style="max-width:220px;border-radius:8px" /></div>` : '';
         wrapper.innerHTML = `
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="text-sm font-semibold">${kaderName} <span class="text-xs text-muted">— ${ed.tags?.join(', ') || ''}</span></div>
-              <div class="text-xs text-muted italic mt-1">${(ed.narrative || '').slice(0,180)}</div>
-              <div class="text-xs text-muted mt-2">Oleh: ${authorName} • ${new Date(ed.date?.seconds * 1000 || Date.now()).toLocaleString()}</div>
-            </div>
+          <div>
+            <div class="text-sm font-semibold">${kaderName} <span class="text-xs text-muted">— ${ed.tags?.join(', ') || ''}</span></div>
+            <div class="text-xs text-muted italic mt-1">${(ed.narrative || '').slice(0,180)}</div>
+            ${attHtml}
+            <div class="text-xs text-muted mt-2">Oleh: ${authorName} • ${new Date(ed.date?.seconds * 1000 || Date.now()).toLocaleString()}</div>
           </div>
         `;
         jurnalList.appendChild(wrapper);
       });
     }
-
-    // also refresh dashboard list
     renderList(snap);
   });
 }
 
-/* -------------------------
-   UI rendering helpers
-   ------------------------- */
+/* UI helpers */
 function showView(name) {
-  // nav active
   document.querySelectorAll('.navBtn').forEach(n => n.classList.remove('active'));
   document.querySelectorAll(`[data-view="${name}"]`).forEach(n => n.classList.add('active'));
-
   for (const [k, el] of Object.entries(views)) {
     if (k === name) el.classList.remove('hidden'); else el.classList.add('hidden');
   }
 }
 
-/* Render table list (desktop) or cards (mobile) */
 function renderList(entriesSnapshot) {
-  // Use cached usersCache to build a list of users and a quick table
   const usersArr = Object.values(usersCache).filter(u => (u.role || 'kader') === 'kader');
   const total = usersArr.length;
   listInfo.textContent = `Menampilkan ${Math.min(total,3)} dari ${total} kader`;
-
-  // render simple rows (mobile card fallback)
   listContainer.innerHTML = '';
   if (usersArr.length === 0) {
     emptyState.textContent = 'Belum ada data kader.';
@@ -252,7 +198,6 @@ function renderList(entriesSnapshot) {
     return;
   }
 
-  // produce card per user (first 10)
   usersArr.slice(0, 20).forEach(u => {
     const card = document.createElement('div');
     card.className = 'card p-3 mb-3';
@@ -271,12 +216,10 @@ function renderList(entriesSnapshot) {
     listContainer.appendChild(card);
   });
 
-  // quick metrics (demo computation)
   const matang = usersArr.filter(u => u.status === 'matang').length;
   matangCount.textContent = matang || Math.min(15, usersArr.length);
 }
 
-/* populate selectKader */
 function populateKaderSelect() {
   selectKader.innerHTML = '<option value="">Pilih Kader...</option>';
   Object.values(usersCache).filter(u => (u.role || 'kader') === 'kader').forEach(u => {
@@ -287,15 +230,14 @@ function populateKaderSelect() {
   });
 }
 
-/* -------------------------
-   Entry form handling
-   ------------------------- */
+/* Entry form handling with attachment upload */
 entryForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const prokerId = selectProker.value;
   const userId = selectKader.value;
   const narrative = document.getElementById('narrative').value.trim();
   const tags = tagsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+  const file = attachmentInput.files?.[0] || null;
 
   if (!prokerId || !userId || !narrative) {
     alert('Lengkapi Proker, Kader, dan Observasi.');
@@ -303,15 +245,19 @@ entryForm.addEventListener('submit', async (e) => {
   }
 
   try {
-    await addDoc(collection(db, 'entries'), {
-      prokerId,
-      userId,
-      authorId: currentUser.uid,
-      date: serverTimestamp(),
-      narrative,
-      tags,
-      skills: tags
+    const docRef = await addDoc(collection(db, 'entries'), {
+      prokerId, userId, authorId: currentUser.uid, date: serverTimestamp(),
+      narrative, tags, skills: tags, attachments: []
     });
+
+    if (file) {
+      const path = `attachments/${docRef.id}/${Date.now()}_${file.name}`;
+      const r = storageRef(storage, path);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+      await updateDoc(doc(db, 'entries', docRef.id), { attachments: [url] });
+    }
+
     entryForm.reset();
     alert('Catatan tersimpan.');
   } catch (err) {
@@ -320,26 +266,18 @@ entryForm.addEventListener('submit', async (e) => {
   }
 });
 
-/* clear entry */
 document.getElementById('clearEntry').addEventListener('click', () => entryForm.reset());
-
-/* quick new entry button shows jurnal view */
 openNewEntry.addEventListener('click', () => showView('jurnal'));
 
-/* -------------------------
-   Profile modal content
-   ------------------------- */
+/* Profile modal */
 async function openProfileModal() {
   profileEntries.innerHTML = 'Memuat...';
-  // read users collection to get current user's doc
-  // For simplicity, we search in usersCache by uid
-  const u = Object.values(usersCache).find(x => x.uid === currentUser.uid) || null;
+  const u = usersCache[currentUser.uid] || null;
   profileName.textContent = u?.name || currentUser.displayName || 'Pengurus';
   profilePosition.textContent = u?.position || 'Penilai';
   profileClass.textContent = u?.class || '-';
   profileAvatar.src = u?.avatarUrl || currentUser.photoURL || 'assets/avatar-placeholder.png';
 
-  // show last 5 entries by this author
   const eCol = collection(db, 'entries');
   const q = query(eCol, where('authorId','==', currentUser.uid), orderBy('date','desc'));
   const snap = await getDocs(q);
@@ -358,9 +296,7 @@ async function openProfileModal() {
   profileModal.classList.remove('hidden');
 }
 
-/* -------------------------
-   cleanup on unload
-   ------------------------- */
+/* cleanup */
 window.addEventListener('beforeunload', () => {
   if (typeof usersUnsub === 'function') usersUnsub();
   if (typeof entriesUnsub === 'function') entriesUnsub();
